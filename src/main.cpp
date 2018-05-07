@@ -6,9 +6,9 @@
 #include <chrono>
 #include <limits>
 
-#include "src/active_contour_method.h"
-#include "src/local_prefitting_functions.h"
-#include "src/draw_contour_from_acm_matrix.h"
+#include "active_contour_method.h"
+#include "local_prefitting_functions.h"
+#include "draw_contour_from_acm_matrix.h"
 
 using namespace cv;
 using namespace std;
