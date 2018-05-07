@@ -15,12 +15,12 @@ using namespace std;
 
 int main() {
 
-    Mat image = imread("examples/2.bmp", IMREAD_GRAYSCALE);
+    Mat_<uchar> image = imread("examples/2.bmp", IMREAD_GRAYSCALE);
 
 
     // INITIAL LSF
 
-    Mat initialLSF = Mat::ones(image.size(), CV_32FC1);
+    Mat_<float> initialLSF = Mat::ones(image.size(), CV_32FC1);
 
     Rect random_rectangle(Point(40, 15), Size(20, 20));
 

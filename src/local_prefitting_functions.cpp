@@ -1,7 +1,7 @@
 
 #include "local_prefitting_functions.h"
 
-void local_prefitting_functions(const Mat & image, const Mat & kernel, Mat &f1, Mat &f2) {
+void local_prefitting_functions(const Mat_<uchar> & image, const Mat & kernel, Mat &f1, Mat &f2) {
 
     // KK - helper kernel?
     Mat KK = kernel.clone();
@@ -161,49 +161,53 @@ void local_prefitting_functions(const Mat & image, const Mat & kernel, Mat &f1, 
 
 }
 
-void energy_functions_from_prefiting_functions(const Mat & image, const Mat & prefitting_kernel, const Mat & prefit1, const Mat & prefit2, Mat & energy1, Mat & energy2) {
+void energy_functions_from_prefiting_functions(const Mat_<uchar> & image, const Mat & prefitting_kernel, const Mat & prefit1, const Mat & prefit2, Mat & energy1, Mat & energy2) {
 
     Mat prefitting_1 = prefit1.clone();
     Mat prefitting_2 = prefit2.clone();
-
-    CV_Assert(image.type() == CV_8UC1);
 
     Mat image_float = image.clone();
     image_float.convertTo(image_float, CV_32FC1);
 
 
-    Mat energy1_expr1;
-
-    Mat energy1_filter1;
-    filter2D(Mat::ones(image.size(), CV_32FC1), energy1_filter1, -1, prefitting_kernel);
-
-    energy1_expr1 = image_float.clone();
-    energy1_expr1 = (energy1_expr1.mul(energy1_expr1));
-    energy1_expr1 = energy1_expr1.mul(energy1_filter1);
+	// e1=Img.*Img.*imfilter(ones(size(Img)),K,'replicate')-2.*Img.*imfilter(f1,K,'replicate')+imfilter(f1.^2,K,'replicate');
+	// e2=Img.*Img.*imfilter(ones(size(Img)),K,'replicate')-2.*Img.*imfilter(f2,K,'replicate')+imfilter(f2.^2,K,'replicate');
 
 
-    Mat energy1_expr2;
+    // ENERGY FUNCTION 1
 
-    Mat energy1_filter2;
+    Mat imfilter1;
+    filter2D(Mat::ones(image.size(), CV_32FC1), imfilter1, -1, prefitting_kernel);
+
+    Mat imfilter2;
     prefitting_1.convertTo(prefitting_1, CV_8UC1);
-    filter2D(prefitting_1, energy1_filter2, CV_32FC1, prefitting_kernel,
+    filter2D(prefitting_1, imfilter2, CV_32FC1, prefitting_kernel,
             Point(-1, -1), 0, BORDER_REPLICATE);
 
-    energy1_expr2 = image_float.clone();
-    energy1_expr2 = energy1_expr2 * 2;
-    energy1_expr2 = energy1_expr2.mul(energy1_filter2);
-
-
-    Mat energy1_expr3;
-
+    Mat imfilter3;
     prefitting_1.convertTo(prefitting_1, CV_16UC1);
-    filter2D(prefitting_1.mul(prefitting_1), energy1_expr3, CV_32FC1, prefitting_kernel,
+    filter2D(prefitting_1.mul(prefitting_1), imfilter3, CV_32FC1, prefitting_kernel,
             Point(-1, -1), 0, BORDER_REPLICATE);
 
+    energy1 = Mat(image.size(), CV_32FC1);
 
-    energy1 = energy1_expr1 - energy1_expr2 + energy1_expr3;
+    for(int i=0; i < image_float.rows; i++) {
+    	for(int j=0; j < image_float.cols; j++) {
+    		Point current_point(j, i);
+
+    		float part_one = image_float.at<float>(current_point)
+    				* image_float.at<float>(current_point) * imfilter1.at<float>(current_point);
+
+    		float part_two = -2 * image_float.at<float>(current_point) * imfilter2.at<float>(current_point);
+
+    		float part_three = imfilter3.at<float>(current_point);
+
+    		energy1.at<float>(current_point) = part_one + part_two + part_three;
+    	}
+    }
 
 
+    // ENERGY FUNCTION 2
 
     Mat energy2_expr1;
 
