@@ -25,13 +25,13 @@ void local_prefitting_functions(const Mat_<uchar> & image, const Mat & kernel, M
 
     // fill all boundaries (their width is r) of image_n
 
-    Mat top = image_n(Rect(Point(r, 0), Size(image.cols, r)));
+    Mat top_border = image_n(Rect(Point(r, 0), Size(image.cols, r)));
     Mat original_top = image(Rect(Point(0, 0), Size(image.cols, r)));
-    original_top.copyTo(top);
+    original_top.copyTo(top_border);
 
-    Mat right = image_n(Rect(Point(r + image.cols, 0), Size(r, image.rows + r)));
+    Mat right_border = image_n(Rect(Point(r + image.cols, 0), Size(r, image.rows + r)));
     Mat right_fill = image_n(Rect(Point(image.cols, 0), Size(r, image.rows + r)));
-    right_fill.copyTo(right);
+    right_fill.copyTo(right_border);
 
     Mat bottom = image_n(Rect(Point(r, image.rows + r), Size(image.cols + r, r)));
     Mat bottom_fill = image_n(Rect(Point(r, image.rows), Size(image.cols + r, r)));
@@ -112,13 +112,6 @@ void local_prefitting_functions(const Mat_<uchar> & image, const Mat & kernel, M
 
             float f1_current = sum(only_lower_than_mean)[0] /
                     (sum(KK_only_lower_than_mean)[0] + numeric_limits<float>::epsilon());
-
-
-            // DEBUG HELPER
-            // if(i==79-1 && j ==83-1){
-            //   cout << sum(KK_only_lower_than_mean);
-            // }
-
 
             float f2_current = sum(only_greater_than_mean)[0] /
                     (sum(KK_only_greater_than_mean)[0] + numeric_limits<float>::epsilon());
@@ -205,6 +198,8 @@ void energy_functions_from_prefiting_functions(const Mat_<uchar> & image, const 
     		energy1.at<float>(current_point) = part_one + part_two + part_three;
     	}
     }
+
+    // TODO rewrite energy function 2
 
 
     // ENERGY FUNCTION 2

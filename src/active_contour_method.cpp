@@ -4,6 +4,9 @@
 Mat curvature_central(const Mat & LSF);
 Mat neumann_boundary_condition(const Mat &in);
 
+
+// MAIN FUNCTION
+
 Mat active_contour_with_local_prefitting_functions
 (Mat LSF_init, double nu, double timestep, double mu, double epsilon, double lambda1, double lambda2, Mat energy1, Mat energy2) {
 
@@ -67,6 +70,8 @@ Mat active_contour_with_local_prefitting_functions
     return LSF;
 }
 
+// HELPER
+
 Mat curvature_central(const Mat & LSF) {
     Mat K(LSF.size(), CV_32FC1);
 
@@ -90,22 +95,9 @@ Mat curvature_central(const Mat & LSF) {
     return K;
 }
 
+// HELPER
+
 Mat neumann_boundary_condition(const Mat &in) {
-
-    // DEBUG HEADER START
-    // void neumann_boundary_condition() {
-    //   Mat out;
-    //   Mat in(Size(100,100), CV_32F);
-
-    // double curr = 1.0;
-
-    // for(int i=0; i<in.rows; i++) {
-    //   for(int j=0; j<in.cols; j++) {
-    //     in.at<float>(Point(j,i)) = curr;
-    //     curr += 1.0;
-    //   }
-    // }
-    // DEBUG HEADER END
 
     CV_Assert(in.type() == CV_32FC1);
 
@@ -141,4 +133,38 @@ Mat neumann_boundary_condition(const Mat &in) {
     out(one_of_right_cols).copyTo(out(right_edge));
 
     return out;
+}
+
+// ADDITIONAL UTILITY
+
+Mat decorate_with_contours_from_acm_matrix(const Mat& image, const Mat& LSF) {
+    // draw contour based on LSF
+    // (contours are drawn around areas with negative values)
+
+    // it tries to imitate Matlab behaviour
+
+    CV_Assert(LSF.type() == CV_32FC1);
+    CV_Assert(image.type() == CV_8UC1);
+
+
+    Mat new_image = image.clone();
+
+    Mat contour_mat;
+
+    // only take negative
+    threshold(LSF, contour_mat, 0.0, 1, THRESH_BINARY);
+    contour_mat.convertTo(contour_mat, CV_8U, 255.0);
+
+    // swap negative/positive
+    contour_mat = contour_mat * -1 + 255;
+
+    // find contours (positive areas)
+    vector<vector < Point>> contours;
+    findContours(contour_mat, contours, RETR_LIST, CHAIN_APPROX_NONE);
+
+    Mat clean_img = Mat::zeros(image.size(), CV_8U);
+
+    drawContours(new_image, contours, -1, Scalar(250));
+
+    return new_image;
 }
