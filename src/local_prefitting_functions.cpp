@@ -94,39 +94,11 @@ void local_prefitting_functions(const Mat_<uchar> & image, const Mat_<double> & 
             f2.at<double>(Point(j, i)) = f2_elem;
 
 
-            /*
-            // calculate s1 s2
-
-            Mat temp1 = Mat::zeros(window.size(), CV_64FC1);
-            temp1.setTo(f1_current, only_lower_than_mean != 0);
-
-            temp1 = temp1 - only_lower_than_mean;
-
-            multiply(temp1, temp1, temp1);
-
-            double s1_current = sum(temp1)[0];
-
-
-            Mat temp2 = Mat::zeros(window.size(), CV_64FC1);
-            temp2.setTo(f2_current, only_greater_than_mean != 0);
-
-            temp2 = temp2 - only_greater_than_mean;
-
-            multiply(temp2, temp2, temp2);
-
-            double s2_current = sum(temp2)[0];
-
-            s1.at<double>(Point(j, i)) = s1_current;
-            s2.at<double>(Point(j, i)) = s2_current;
-            */
-
         }
     }
 
     f1 = f1(original_part_of_image_extended);
     f2 = f2(original_part_of_image_extended);
-    // s1 = s1(original_part_of_image_extended);
-    // s2 = s2(original_part_of_image_extended);
 
 }
 
