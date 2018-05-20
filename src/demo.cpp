@@ -12,6 +12,9 @@
 using namespace cv;
 using namespace std;
 
+
+// TODO - separate git repo
+
 int main() {
 
     Mat_<uchar> image = imread("examples/2.bmp", IMREAD_GRAYSCALE);
@@ -19,14 +22,14 @@ int main() {
 
     // INITIAL LSF
 
-    Mat_<float> initialLSF = Mat::ones(image.size(), CV_32FC1);
+    Mat_<double> initialLSF = Mat::ones(image.size(), CV_64FC1);
 
-    Rect random_rectangle(Point(40, 15), Size(20, 20));
+    Rect some_rectangle(Point(40, 15), Size(20, 20));
 
-    initialLSF(random_rectangle).setTo(-1.0);
+    initialLSF(some_rectangle).setTo(-1.0);
 
     // -- or only ones? (or zeros?)
-    // initialLSF = Mat::ones(image.size(), CV_32FC1);
+    // initialLSF = Mat::ones(image.size(), CV_64FC1);
 
 
     // PARAMETERS
@@ -44,14 +47,14 @@ int main() {
     // LOCAL PRE-FITTING FUNCTIONS
 
     int gauss_kernel_size = round(2 * sigma) * 2 + 1;
-    Mat gauss_kernel_1d = getGaussianKernel(gauss_kernel_size, sigma, CV_32FC1);
-    Mat gauss_kernel_2d = gauss_kernel_1d * gauss_kernel_1d.t();
 
-    Mat prefitting_kernel = gauss_kernel_2d;
+    Mat_<double> gauss_kernel_1d = getGaussianKernel(gauss_kernel_size, sigma, CV_64FC1);
+    Mat_<double> gauss_kernel_2d = gauss_kernel_1d * gauss_kernel_1d.t();
+    Mat_<double> prefitting_kernel = gauss_kernel_2d;
 
 
-    Mat prefitting_1;
-    Mat prefitting_2;
+    Mat_<double> prefitting_1;
+    Mat_<double> prefitting_2;
 
     local_prefitting_functions(image, prefitting_kernel, prefitting_1, prefitting_2);
 
@@ -65,7 +68,7 @@ int main() {
 
     // LEVEL SET EVOLUTION
 
-    Mat LSF = initialLSF.clone();
+    Mat_<double> LSF = initialLSF.clone();
 
     namedWindow("x", WINDOW_NORMAL);
     resizeWindow("x", 500, 500);
@@ -82,12 +85,13 @@ int main() {
 
         resize(new_image, new_image, Size(250,250));
 
-	// text: iteration number X
-        putText(new_image, "iter: "+to_string(i), Point(20,20), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(250));
+        // text: iteration number X
+        putText(new_image, "Item: "+to_string(i), Point(20,20), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(250));
 
         imshow("x", new_image);
 
-        waitKey(100);
+        int wait_time = 300;
+        waitKey(wait_time);
       }
 
     }

@@ -1,160 +1,140 @@
 
 #include "local_prefitting_functions.h"
 
-void local_prefitting_functions(const Mat_<uchar> & image, const Mat & kernel, Mat &f1, Mat &f2) {
+void local_prefitting_functions(const Mat_<uchar> & image, const Mat_<double> & kernel, Mat_<double> &f1, Mat_<double> &f2) {
 
-    // KK - helper kernel?
-    Mat KK = kernel.clone();
+    // KK - additional helper kernel
+    Mat_<double> KK = kernel.clone();
     KK = KK * kernel.rows * kernel.cols;
 
     // r - border size (for calculating kernel values at edges of image)
     int r = (kernel.rows - 1) / 2;
 
 
-    // prepare extended image (image -> image_n)
+    // PREPARE EXTENDED IMAGE (image -> image_extended)
 
-    // image_n is original image extended with boundaries
-    // it gets additional boundaries of size r
-    CV_Assert(image.type() == CV_8UC1);
-    Mat image_n = Mat::zeros(image.rows + 2 * r, image.cols + 2 * r, CV_8UC1);
+    /*
+      image_extended is original image extended with boundaries;
+      it gets additional boundaries of size r
+    */
 
-    // fill original (central) part of image_n
+    Mat image_extended = Mat::zeros(image.rows + 2 * r, image.cols + 2 * r, CV_8UC1);
 
-    Rect original_part(Point(r, r), image.size());
-    image.copyTo(image_n(original_part));
+    int border = r;
+    copyMakeBorder(image, image_extended, border, border,
+                   border, border, BORDER_REPLICATE);
 
-    // fill all boundaries (their width is r) of image_n
-
-    Mat top_border = image_n(Rect(Point(r, 0), Size(image.cols, r)));
-    Mat original_top = image(Rect(Point(0, 0), Size(image.cols, r)));
-    original_top.copyTo(top_border);
-
-    Mat right_border = image_n(Rect(Point(r + image.cols, 0), Size(r, image.rows + r)));
-    Mat right_fill = image_n(Rect(Point(image.cols, 0), Size(r, image.rows + r)));
-    right_fill.copyTo(right_border);
-
-    Mat bottom = image_n(Rect(Point(r, image.rows + r), Size(image.cols + r, r)));
-    Mat bottom_fill = image_n(Rect(Point(r, image.rows), Size(image.cols + r, r)));
-    bottom_fill.copyTo(bottom);
-
-    Mat left = image_n(Rect(Point(0, 0), Size(r, image.rows + 2 * r)));
-    Mat left_fill = image_n(Rect(Point(r, 0), Size(r, image.rows + 2 * r)));
-    left_fill.copyTo(left);
+    Rect original_part_of_image_extended(Point(r, r), image.size());
 
 
-    // initialize outputs & helpers
+    // INITIALIZE OUTPUTS & HELPERS
 
-    f1 = Mat::zeros(image_n.size(), CV_32FC1);
-    f2 = Mat::zeros(image_n.size(), CV_32FC1);
-    Mat s1 = Mat::zeros(image_n.size(), CV_32FC1);
-    Mat s2 = Mat::zeros(image_n.size(), CV_32FC1);
-    Mat image_mean_values = Mat::zeros(image_n.size(), CV_32FC1);
+    f1 = Mat::zeros(image_extended.size(), CV_64FC1);
+    f2 = Mat::zeros(image_extended.size(), CV_64FC1);
+    Mat s1 = Mat::zeros(image_extended.size(), CV_64FC1);
+    Mat s2 = Mat::zeros(image_extended.size(), CV_64FC1);
+
+    Mat image_mean_values = Mat::zeros(image_extended.size(), CV_64FC1);
+
+    Size window_size(2 * r + 1, 2 * r + 1);
 
 
-    // the loop; prepare prefitting matrix
+    // THE LOOP; PREPARE PREFITTING MATRIX
 
     for (int i = r; i < image.rows + r; i++) {
         for (int j = r; j < image.cols + r; j++) {
-            Rect current_rect(Point(j - r, i - r), Size(2 * r + 1, 2 * r + 1));
-            Mat current_part = image_n(current_rect).clone();
-            current_part.convertTo(current_part, CV_32FC1);
+
+            Rect current(Point(j - r, i - r), window_size);
+            Mat_<double> window = image_extended(current);
+
+            // mean value in the window (only non-zero elements)
+            double mean_value = mean(window, window != 0)[0];
 
 
-            // mean value of non-zero elements
+            // PARTITIONING
+            /*
+              1) partition window into two parts (greater and smaller than mean_value)
+              2) partition KK kernel in the same way
+             */
 
-            float sum_non_zero = 0;
-            int number_of_non_zero = 0;
+            // -- partition window into values greater and smaller than mean_value
 
-            for (int i = 0; i < current_part.rows; i++) {
-                for (int j = 0; j < current_part.cols; j++) {
-                    // sum non-zero elements
-                    float elem = current_part.at<float>(Point(j, i));
-                    if (elem != 0) {
-                        sum_non_zero += elem;
-                        number_of_non_zero++;
-                    }
-                }
-            }
+            Mat_<double> only_lower_than_mean = Mat::zeros(window.size(), CV_64FC1);
+            window.copyTo(only_lower_than_mean, ((window > 0) & (window <= mean_value)));
+            Mat_<double> only_greater_than_mean = Mat::zeros(window.size(), CV_64FC1);
+            window.copyTo(only_greater_than_mean, window >= mean_value);
 
-            float mean_value = sum_non_zero / number_of_non_zero;
+            // -- partition KK kernel in the same way
 
-            image_mean_values.at<float>(Point(j, i)) = mean_value;
+            Mat KK_only_lower_than_mean = Mat::zeros(window.size(), CV_64FC1);
+            KK.copyTo(KK_only_lower_than_mean, ((window > 0) & (window <= mean_value)));
 
-
-            // partition current_part into values greater and lesser than mean_value
-
-            Mat only_lower_than_mean = Mat::zeros(current_part.size(), CV_32FC1);
-            current_part.copyTo(only_lower_than_mean, ((current_part > 0) & (current_part <= mean_value)));
-
-            Mat only_greater_than_mean = Mat::zeros(current_part.size(), CV_32FC1);
-            current_part.copyTo(only_greater_than_mean, current_part >= mean_value);
+            Mat KK_only_greater_than_mean = Mat::zeros(window.size(), CV_64FC1);
+            KK.copyTo(KK_only_greater_than_mean, window >= mean_value);
 
 
-            // partition KK to mirror above partitioning
-
-            Mat KK_only_lower_than_mean = Mat::zeros(current_part.size(), CV_32FC1);
-            KK.copyTo(KK_only_lower_than_mean, ((current_part > 0) & (current_part <= mean_value)));
-
-            Mat KK_only_greater_than_mean = Mat::zeros(current_part.size(), CV_32FC1);
-            KK.copyTo(KK_only_greater_than_mean, current_part >= mean_value);
-
-
-            // point-wise multiply
+            // POINT-WISE MULTIPLY (window elements * KK kernel elements)
 
             multiply(only_greater_than_mean, KK_only_greater_than_mean,
-                    only_greater_than_mean);
+                     only_greater_than_mean);
 
             multiply(only_lower_than_mean, KK_only_lower_than_mean,
-                    only_lower_than_mean);
+                     only_lower_than_mean);
 
 
-            // calculate f1 f2
+            // CALCULATE f1 f2
 
-            float f1_current = sum(only_lower_than_mean)[0] /
-                    (sum(KK_only_lower_than_mean)[0] + numeric_limits<float>::epsilon());
+            double f1_elem = sum(only_lower_than_mean)[0] /
+                (sum(KK_only_lower_than_mean)[0] + numeric_limits<double>::epsilon());
 
-            float f2_current = sum(only_greater_than_mean)[0] /
-                    (sum(KK_only_greater_than_mean)[0] + numeric_limits<float>::epsilon());
+            double f2_elem = sum(only_greater_than_mean)[0] /
+                (sum(KK_only_greater_than_mean)[0] + numeric_limits<double>::epsilon());
 
-            f1.at<float>(Point(j, i)) = f1_current;
-            f2.at<float>(Point(j, i)) = f2_current;
+            f1.at<double>(Point(j, i)) = f1_elem;
+            f2.at<double>(Point(j, i)) = f2_elem;
 
 
+            /*
             // calculate s1 s2
 
-            Mat temp1 = Mat::zeros(current_part.size(), CV_32FC1);
+            Mat temp1 = Mat::zeros(window.size(), CV_64FC1);
             temp1.setTo(f1_current, only_lower_than_mean != 0);
 
             temp1 = temp1 - only_lower_than_mean;
 
             multiply(temp1, temp1, temp1);
 
-            float s1_current = sum(temp1)[0];
+            double s1_current = sum(temp1)[0];
 
 
-            Mat temp2 = Mat::zeros(current_part.size(), CV_32FC1);
+            Mat temp2 = Mat::zeros(window.size(), CV_64FC1);
             temp2.setTo(f2_current, only_greater_than_mean != 0);
 
             temp2 = temp2 - only_greater_than_mean;
 
             multiply(temp2, temp2, temp2);
 
-            float s2_current = sum(temp2)[0];
+            double s2_current = sum(temp2)[0];
 
-            s1.at<float>(Point(j, i)) = s1_current;
-            s2.at<float>(Point(j, i)) = s2_current;
+            s1.at<double>(Point(j, i)) = s1_current;
+            s2.at<double>(Point(j, i)) = s2_current;
+            */
 
         }
     }
 
-    f1 = f1(original_part);
-    f2 = f2(original_part);
-    s1 = s1(original_part);
-    s2 = s2(original_part);
+    f1 = f1(original_part_of_image_extended);
+    f2 = f2(original_part_of_image_extended);
+    // s1 = s1(original_part_of_image_extended);
+    // s2 = s2(original_part_of_image_extended);
 
 }
 
-void energy_functions_from_prefiting_functions(const Mat_<uchar> & image, const Mat & prefitting_kernel, const Mat & prefit1, const Mat & prefit2, Mat & energy1, Mat & energy2) {
+void energy_functions_from_prefiting_functions
+(const Mat_<uchar> & image, const Mat_<double> & prefitting_kernel,
+ const Mat_<double> & prefit1, const Mat_<double> & prefit2,
+ Mat & energy1, Mat & energy2) {
+
 
     Mat prefitting_1 = prefit1.clone();
     Mat prefitting_2 = prefit2.clone();
@@ -163,75 +143,76 @@ void energy_functions_from_prefiting_functions(const Mat_<uchar> & image, const 
     image_float.convertTo(image_float, CV_32FC1);
 
 
-	// e1=Img.*Img.*imfilter(ones(size(Img)),K,'replicate')-2.*Img.*imfilter(f1,K,'replicate')+imfilter(f1.^2,K,'replicate');
-	// e2=Img.*Img.*imfilter(ones(size(Img)),K,'replicate')-2.*Img.*imfilter(f2,K,'replicate')+imfilter(f2.^2,K,'replicate');
-
-
     // ENERGY FUNCTION 1
 
-    Mat imfilter1;
-    filter2D(Mat::ones(image.size(), CV_32FC1), imfilter1, -1, prefitting_kernel);
+	// e1=Img.*Img.*imfilter(ones(size(Img)),K,'replicate')-2.*Img.*imfilter(f1,K,'replicate')+imfilter(f1.^2,K,'replicate');
 
-    Mat imfilter2;
-    prefitting_1.convertTo(prefitting_1, CV_8UC1);
-    filter2D(prefitting_1, imfilter2, CV_32FC1, prefitting_kernel,
+    Mat energy1_imfilter1;
+    filter2D(Mat::ones(image.size(), CV_64FC1), energy1_imfilter1, -1, prefitting_kernel);
+
+    Mat energy1_imfilter2;
+    filter2D(prefitting_1, energy1_imfilter2, CV_64FC1, prefitting_kernel,
             Point(-1, -1), 0, BORDER_REPLICATE);
 
-    Mat imfilter3;
-    prefitting_1.convertTo(prefitting_1, CV_16UC1);
-    filter2D(prefitting_1.mul(prefitting_1), imfilter3, CV_32FC1, prefitting_kernel,
-            Point(-1, -1), 0, BORDER_REPLICATE);
+    Mat energy1_imfilter3;
+    filter2D(prefitting_1.mul(prefitting_1), energy1_imfilter3, CV_64FC1, prefitting_kernel,
+             Point(-1, -1), 0, BORDER_REPLICATE);
 
-    energy1 = Mat(image.size(), CV_32FC1);
 
-    for(int i=0; i < image_float.rows; i++) {
-    	for(int j=0; j < image_float.cols; j++) {
+    energy1 = Mat(image.size(), CV_64FC1);
+
+    for(int i=0; i < image.rows; i++) {
+    	for(int j=0; j < image.cols; j++) {
     		Point current_point(j, i);
 
-    		float part_one = image_float.at<float>(current_point)
-    				* image_float.at<float>(current_point) * imfilter1.at<float>(current_point);
+    		double part_one = (double) image.at<uchar>(current_point)
+                * image.at<uchar>(current_point) * energy1_imfilter1.at<double>(current_point);
 
-    		float part_two = -2 * image_float.at<float>(current_point) * imfilter2.at<float>(current_point);
+    		double part_two = -2.0 * image.at<uchar>(current_point) * energy1_imfilter2.at<double>(current_point);
 
-    		float part_three = imfilter3.at<float>(current_point);
+    		double part_three = energy1_imfilter3.at<double>(current_point);
 
-    		energy1.at<float>(current_point) = part_one + part_two + part_three;
+    		energy1.at<double>(current_point) = part_one + part_two + part_three;
     	}
     }
 
-    // TODO rewrite energy function 2
+    Rect test(0,0,5,5);
+    cout << "NEW ONE" << energy1(test) << endl;
 
+    exit(1);
 
     // ENERGY FUNCTION 2
 
-    Mat energy2_expr1;
+	// e2=Img.*Img.*imfilter(ones(size(Img)),K,'replicate')-2.*Img.*imfilter(f2,K,'replicate')+imfilter(f2.^2,K,'replicate');
 
-    Mat energy2_filter1;
-    filter2D(Mat::ones(image.size(), CV_32FC1), energy2_filter1, -1, prefitting_kernel);
+    Mat energy2_imfilter1;
+    filter2D(Mat::ones(image.size(), CV_32FC1), energy2_imfilter1, -1, prefitting_kernel);
 
-    energy2_expr1 = image_float.clone();
-    energy2_expr1 = (energy2_expr1.mul(energy2_expr1));
-    energy2_expr1 = energy2_expr1.mul(energy2_filter1);
-
-
-    Mat energy2_expr2;
-
-    Mat energy2_filter2;
-    prefitting_2.convertTo(prefitting_2, CV_8UC1);
-    filter2D(prefitting_2, energy2_filter2, CV_32FC1, prefitting_kernel,
+    Mat energy2_imfilter2;
+    // prefitting_2.convertTo(prefitting_2, CV_8UC1);
+    filter2D(prefitting_2, energy2_imfilter2, CV_32FC1, prefitting_kernel,
             Point(-1, -1), 0, BORDER_REPLICATE);
 
-    energy2_expr2 = image_float.clone();
-    energy2_expr2 = energy2_expr2 * 2;
-    energy2_expr2 = energy2_expr2.mul(energy2_filter2);
+    Mat energy2_imfilter3;
+    // prefitting_2.convertTo(prefitting_2, CV_16UC1);
+    filter2D(prefitting_2.mul(prefitting_2), energy2_imfilter3, CV_32FC1, prefitting_kernel,
+             Point(-1, -1), 0, BORDER_REPLICATE);
 
+    energy2 = Mat(image.size(), CV_32FC1);
 
-    Mat energy2_expr3;
+    for(int i=0; i < image_float.rows; i++) {
+      for(int j=0; j < image_float.cols; j++) {
+        Point current_point(j, i);
 
-    prefitting_2.convertTo(prefitting_2, CV_16UC1);
-    filter2D(prefitting_2.mul(prefitting_2), energy2_expr3, CV_32FC1, prefitting_kernel,
-            Point(-1, -1), 0, BORDER_REPLICATE);
+        float part_one = image_float.at<float>(current_point)
+          * image_float.at<float>(current_point) * energy2_imfilter1.at<float>(current_point);
 
+        float part_two = -2 * image_float.at<float>(current_point) * energy2_imfilter2.at<float>(current_point);
 
-    energy2 = energy2_expr1 - energy2_expr2 + energy2_expr3;
+        float part_three = energy2_imfilter3.at<float>(current_point);
+
+        energy2.at<float>(current_point) = part_one + part_two + part_three;
+      }
+    }
+
 }

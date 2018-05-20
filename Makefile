@@ -17,4 +17,4 @@ $(OBJS): %.o: %.cpp
 
 
 clean:
-	rm -f $(PROGS)
+	rm -f $(OBJS)

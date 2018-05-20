@@ -8,7 +8,8 @@ using namespace cv;
 using namespace std;
 
 
-Mat active_contour_with_local_prefitting_functions
-(Mat LSF, double nu, double timestep, double mu, double epsilon, double lambda1, double lambda2, Mat energy1, Mat energy2);
+Mat_<double> active_contour_with_local_prefitting_functions
+(Mat_<double> LSF_init, double nu, double timestep, double mu, double epsilon, double lambda1, double lambda2, Mat_<double> energy1, Mat_<double> energy2);
 
-Mat decorate_with_contours_from_acm_matrix(const Mat& image, const Mat& LSF);
+Mat_<uchar> decorate_with_contours_from_acm_matrix
+(const Mat_<uchar> &image, const Mat_<double> &LSF);
