@@ -139,23 +139,23 @@ void energy_functions_from_prefiting_functions
     Mat prefitting_1 = prefit1.clone();
     Mat prefitting_2 = prefit2.clone();
 
-    Mat image_float = image.clone();
-    image_float.convertTo(image_float, CV_32FC1);
-
 
     // ENERGY FUNCTION 1
 
 	// e1=Img.*Img.*imfilter(ones(size(Img)),K,'replicate')-2.*Img.*imfilter(f1,K,'replicate')+imfilter(f1.^2,K,'replicate');
 
     Mat energy1_imfilter1;
-    filter2D(Mat::ones(image.size(), CV_64FC1), energy1_imfilter1, -1, prefitting_kernel);
+    filter2D(Mat::ones(image.size(), CV_64FC1), energy1_imfilter1,
+             CV_64FC1, prefitting_kernel);
 
     Mat energy1_imfilter2;
-    filter2D(prefitting_1, energy1_imfilter2, CV_64FC1, prefitting_kernel,
-            Point(-1, -1), 0, BORDER_REPLICATE);
+    filter2D(prefitting_1, energy1_imfilter2,
+             CV_64FC1, prefitting_kernel,
+             Point(-1, -1), 0, BORDER_REPLICATE);
 
     Mat energy1_imfilter3;
-    filter2D(prefitting_1.mul(prefitting_1), energy1_imfilter3, CV_64FC1, prefitting_kernel,
+    filter2D(prefitting_1.mul(prefitting_1), energy1_imfilter3,
+             CV_64FC1, prefitting_kernel,
              Point(-1, -1), 0, BORDER_REPLICATE);
 
 
@@ -168,7 +168,8 @@ void energy_functions_from_prefiting_functions
     		double part_one = (double) image.at<uchar>(current_point)
                 * image.at<uchar>(current_point) * energy1_imfilter1.at<double>(current_point);
 
-    		double part_two = -2.0 * image.at<uchar>(current_point) * energy1_imfilter2.at<double>(current_point);
+    		double part_two = -2.0 * image.at<uchar>(current_point)
+                * energy1_imfilter2.at<double>(current_point);
 
     		double part_three = energy1_imfilter3.at<double>(current_point);
 
@@ -176,43 +177,43 @@ void energy_functions_from_prefiting_functions
     	}
     }
 
-    Rect test(0,0,5,5);
-    cout << "NEW ONE" << energy1(test) << endl;
 
-    exit(1);
 
     // ENERGY FUNCTION 2
 
 	// e2=Img.*Img.*imfilter(ones(size(Img)),K,'replicate')-2.*Img.*imfilter(f2,K,'replicate')+imfilter(f2.^2,K,'replicate');
 
     Mat energy2_imfilter1;
-    filter2D(Mat::ones(image.size(), CV_32FC1), energy2_imfilter1, -1, prefitting_kernel);
+    filter2D(Mat::ones(image.size(), CV_64FC1), energy2_imfilter1,
+             CV_64FC1, prefitting_kernel);
 
     Mat energy2_imfilter2;
-    // prefitting_2.convertTo(prefitting_2, CV_8UC1);
-    filter2D(prefitting_2, energy2_imfilter2, CV_32FC1, prefitting_kernel,
-            Point(-1, -1), 0, BORDER_REPLICATE);
-
-    Mat energy2_imfilter3;
-    // prefitting_2.convertTo(prefitting_2, CV_16UC1);
-    filter2D(prefitting_2.mul(prefitting_2), energy2_imfilter3, CV_32FC1, prefitting_kernel,
+    filter2D(prefitting_2, energy2_imfilter2,
+             CV_64FC1, prefitting_kernel,
              Point(-1, -1), 0, BORDER_REPLICATE);
 
-    energy2 = Mat(image.size(), CV_32FC1);
+    Mat energy2_imfilter3;
+    filter2D(prefitting_2.mul(prefitting_2), energy2_imfilter3,
+             CV_64FC1, prefitting_kernel,
+             Point(-1, -1), 0, BORDER_REPLICATE);
 
-    for(int i=0; i < image_float.rows; i++) {
-      for(int j=0; j < image_float.cols; j++) {
-        Point current_point(j, i);
 
-        float part_one = image_float.at<float>(current_point)
-          * image_float.at<float>(current_point) * energy2_imfilter1.at<float>(current_point);
+    energy2 = Mat(image.size(), CV_64FC1);
 
-        float part_two = -2 * image_float.at<float>(current_point) * energy2_imfilter2.at<float>(current_point);
+    for(int i=0; i < image.rows; i++) {
+    	for(int j=0; j < image.cols; j++) {
+    		Point current_point(j, i);
 
-        float part_three = energy2_imfilter3.at<float>(current_point);
+    		double part_one = (double) image.at<uchar>(current_point)
+                * image.at<uchar>(current_point) * energy2_imfilter1.at<double>(current_point);
 
-        energy2.at<float>(current_point) = part_one + part_two + part_three;
-      }
+    		double part_two = -2.0 * image.at<uchar>(current_point)
+                * energy2_imfilter2.at<double>(current_point);
+
+    		double part_three = energy2_imfilter3.at<double>(current_point);
+
+    		energy2.at<double>(current_point) = part_one + part_two + part_three;
+    	}
     }
 
 }
