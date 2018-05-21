@@ -33,8 +33,7 @@ void energy_functions_top_level(const Mat_<uchar> &image, const Mat_<double> &ke
 void local_prefitting_functions(const Mat_<uchar> & image, const Mat_<double> & kernel, Mat_<double> &f1, Mat_<double> &f2) {
 
     // KK - additional helper kernel
-    Mat_<double> KK = kernel.clone();
-    KK = KK * kernel.rows * kernel.cols;
+    Mat_<double> KK = kernel * kernel.rows * kernel.cols;
 
     // r - border size (for calculating kernel values at edges of image)
     int r = (kernel.rows - 1) / 2;

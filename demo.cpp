@@ -13,7 +13,6 @@ using namespace cv;
 using namespace std;
 
 
-// TODO - separate git repo
 
 int main() {
 
