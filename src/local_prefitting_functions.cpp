@@ -78,46 +78,41 @@ void local_prefitting_functions(const Mat_<uchar> & image, const Mat_<double> & 
             // mean value in the window (only non-zero elements)
             double mean_value = mean(window, window != 0)[0];
 
+            Mat_<double> weighted_window = window.mul(KK);
 
-            // PARTITIONING
+            double sum_weighted_elems_below_mean = 0;
+            double sum_weighted_elems_above_mean = 0;
+            double sum_KK_below_mean = 0;
+            double sum_KK_above_mean = 0;
 
-            /*
-              1) partition window into two parts (greater and smaller than mean_value)
-              2) partition KK kernel in the same way
-             */
+            for(int y = 0; y < window.rows; y++) {
+                for(int x = 0; x < window.cols; x++) {
+                    Point point(x, y);
 
-            // -- partition window into values greater and smaller than mean_value
+                    double elem = window.at<double>(point);
+                    double KK_elem = KK.at<double>(point);
+                    double weighted_elem = weighted_window.at<double>(point);
 
-            Mat_<double> only_lower_than_mean = Mat::zeros(window.size(), CV_64FC1);
-            window.copyTo(only_lower_than_mean, ((window > 0) & (window <= mean_value)));
-            Mat_<double> only_greater_than_mean = Mat::zeros(window.size(), CV_64FC1);
-            window.copyTo(only_greater_than_mean, window >= mean_value);
+                    if(elem >= mean_value) {
+                        sum_weighted_elems_above_mean += weighted_elem;
+                        sum_KK_above_mean += KK_elem;
+                    }
 
-            // -- partition KK kernel in the same way
+                    if (elem <= mean_value && elem > 0) {
+                        sum_weighted_elems_below_mean += weighted_elem;
+                        sum_KK_below_mean += KK_elem;
+                    }
 
-            Mat KK_only_lower_than_mean = Mat::zeros(window.size(), CV_64FC1);
-            KK.copyTo(KK_only_lower_than_mean, ((window > 0) & (window <= mean_value)));
-
-            Mat KK_only_greater_than_mean = Mat::zeros(window.size(), CV_64FC1);
-            KK.copyTo(KK_only_greater_than_mean, window >= mean_value);
-
-
-            // POINT-WISE MULTIPLY (window elements * KK kernel elements)
-
-            multiply(only_greater_than_mean, KK_only_greater_than_mean,
-                     only_greater_than_mean);
-
-            multiply(only_lower_than_mean, KK_only_lower_than_mean,
-                     only_lower_than_mean);
-
+                }
+            }
 
             // CALCULATE f1 f2
 
-            double f1_elem = sum(only_lower_than_mean)[0] /
-                (sum(KK_only_lower_than_mean)[0] + numeric_limits<double>::epsilon());
+            double f1_elem = sum_weighted_elems_below_mean /
+                (sum_KK_below_mean + numeric_limits<double>::epsilon());
 
-            double f2_elem = sum(only_greater_than_mean)[0] /
-                (sum(KK_only_greater_than_mean)[0] + numeric_limits<double>::epsilon());
+            double f2_elem = sum_weighted_elems_above_mean /
+                (sum_KK_above_mean + numeric_limits<double>::epsilon());
 
             f1.at<double>(Point(j, i)) = f1_elem;
             f2.at<double>(Point(j, i)) = f2_elem;
