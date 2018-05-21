@@ -1,11 +1,10 @@
 CXX = g++ -std=c++14 -g
 CPPFLAGS =  `pkg-config --cflags opencv`
-LDLIBS = `pkg-config --libs opencv`
+LDLIBS = `pkg-config --libs opencv` -Iinclude/
 
-SRCS = $(wildcard src/*.cpp)
+SRCS = $(wildcard src/*.cpp *.cpp)
 
 OBJS = $(SRCS:.cpp=.o)
-
 
 
 all: $(OBJS)
@@ -13,7 +12,6 @@ all: $(OBJS)
 
 $(OBJS): %.o: %.cpp
 	$(CXX) -c $(CPPFLAGS) $< $(LDLIBS) -o $@
-
 
 
 clean:
