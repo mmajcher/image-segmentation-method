@@ -29,6 +29,7 @@ void energy_functions_top_level(const Mat_<uchar> &image, const Mat_<double> &ke
 
 }
 
+
 void local_prefitting_functions(const Mat_<uchar> & image, const Mat_<double> & kernel, Mat_<double> &f1, Mat_<double> &f2) {
 
     // KK - additional helper kernel
@@ -69,10 +70,11 @@ void local_prefitting_functions(const Mat_<uchar> & image, const Mat_<double> & 
 
     // THE LOOP; PREPARE PREFITTING MATRIX
 
-    for (int i = r; i < image.rows + r; i++) {
-        for (int j = r; j < image.cols + r; j++) {
+    // -- loop over extended image
+    for (int y = r; y < image.rows + r; y++) {
+        for (int x = r; x < image.cols + r; x++) {
 
-            Rect current(Point(j - r, i - r), window_size);
+            Rect current(Point(x - r, y - r), window_size);
             Mat_<double> window = image_extended(current);
 
             // mean value in the window (only non-zero elements)
@@ -85,6 +87,7 @@ void local_prefitting_functions(const Mat_<uchar> & image, const Mat_<double> & 
             double sum_KK_below_mean = 0;
             double sum_KK_above_mean = 0;
 
+            // -- loop over current window
             for(int y = 0; y < window.rows; y++) {
                 for(int x = 0; x < window.cols; x++) {
                     Point point(x, y);
@@ -102,7 +105,6 @@ void local_prefitting_functions(const Mat_<uchar> & image, const Mat_<double> & 
                         sum_weighted_elems_below_mean += weighted_elem;
                         sum_KK_below_mean += KK_elem;
                     }
-
                 }
             }
 
@@ -114,8 +116,8 @@ void local_prefitting_functions(const Mat_<uchar> & image, const Mat_<double> & 
             double f2_elem = sum_weighted_elems_above_mean /
                 (sum_KK_above_mean + numeric_limits<double>::epsilon());
 
-            f1.at<double>(Point(j, i)) = f1_elem;
-            f2.at<double>(Point(j, i)) = f2_elem;
+            f1.at<double>(Point(x, y)) = f1_elem;
+            f2.at<double>(Point(x, y)) = f2_elem;
 
 
         }
@@ -157,9 +159,9 @@ void energy_functions_from_prefiting_functions
 
     energy1 = Mat(image.size(), CV_64FC1);
 
-    for(int i=0; i < image.rows; i++) {
-    	for(int j=0; j < image.cols; j++) {
-    		Point current_point(j, i);
+    for(int y=0; y < image.rows; y++) {
+    	for(int x=0; x < image.cols; x++) {
+    		Point current_point(x, y);
 
     		double part_one = (double) image.at<uchar>(current_point)
                 * image.at<uchar>(current_point) * energy1_imfilter1.at<double>(current_point);
@@ -196,9 +198,9 @@ void energy_functions_from_prefiting_functions
 
     energy2 = Mat(image.size(), CV_64FC1);
 
-    for(int i=0; i < image.rows; i++) {
-    	for(int j=0; j < image.cols; j++) {
-    		Point current_point(j, i);
+    for(int y=0; y < image.rows; y++) {
+    	for(int x=0; x < image.cols; x++) {
+    		Point current_point(x, y);
 
     		double part_one = (double) image.at<uchar>(current_point)
                 * image.at<uchar>(current_point) * energy2_imfilter1.at<double>(current_point);

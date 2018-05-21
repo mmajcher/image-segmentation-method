@@ -10,8 +10,6 @@ Mat neumann_boundary_condition(const Mat &in);
 Mat_<double> active_contour_step
 (Mat_<double> LSF_init, double nu, double timestep, double mu, double epsilon, double lambda1, double lambda2, Mat_<double> energy1, Mat_<double> energy2) {
 
-    // TODO annotate this signature
-
 
     Mat_<double> LSF = LSF_init.clone();
 
@@ -65,12 +63,8 @@ Mat_<double> active_contour_step
     Mat_<double> PenaltyTerm;
     Mat_<double> u_laplacian;
 
-    // NOT SURE IF THIS IS SAME AS del2(u) !!!
+    // -- slightly different than del2 (del2 is an approximation)
     Laplacian(LSF, u_laplacian, -1, 1, 0.25);
-
-//    cout << "next_laplacian:" << endl;
-//    cout << u_laplacian(Range(30,40), Range(30,40));
-//    cout << endl;
 
     PenaltyTerm = mu * (4 * u_laplacian - K);
 
