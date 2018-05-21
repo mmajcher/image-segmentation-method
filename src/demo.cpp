@@ -17,7 +17,7 @@ using namespace std;
 
 int main() {
 
-    Mat_<uchar> image = imread("examples/2.bmp", IMREAD_GRAYSCALE);
+    Mat_<uchar> image = imread("images/2.bmp", IMREAD_GRAYSCALE);
 
 
     // INITIAL LSF
