@@ -55,12 +55,22 @@ int main() {
     energy_functions_top_level(image, prefitting_kernel, energy1, energy2);
 
 
-    // LEVEL SET EVOLUTION
+    // DISPLAY INITIAL IMAGE
 
     namedWindow("debug_window", WINDOW_NORMAL);
     resizeWindow("debug_window", 500, 500);
 
+    Mat display_image = image.clone();
+    resize(display_image, display_image, Size(250,250));
+    putText(display_image, "initial", Point(20,20), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(250));
+    imshow("debug_window", display_image);
+    waitKey();
+
+
+    // LEVEL SET EVOLUTION
+
     Mat_<double> LSF = initialLSF;
+
 
     for(int i=0; i<iterations_number; i++) {
 
@@ -76,7 +86,6 @@ int main() {
       // print here - every X iteration
 
       int X = 10;
-
       if(i % X == 0) {
         Mat display_image = decorate_with_contours_from_acm_matrix(image, LSF);
 

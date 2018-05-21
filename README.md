@@ -9,5 +9,6 @@ segmentation** (Keyan Ding, Linfang Xiao, Guirong Weng,
 Dependencies:
 - OpenCV 3.4
 
-
-TODO: add gif demo
+<p align="center"> 
+<img src="https://github.com/mmajcher/image-segmentation-method/blob/master/demo.gif">
+</p>
