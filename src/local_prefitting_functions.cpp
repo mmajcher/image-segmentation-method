@@ -1,6 +1,34 @@
 
 #include "local_prefitting_functions.h"
 
+void local_prefitting_functions(const Mat_<uchar> & image, const Mat_<double> & kernel, Mat_<double> &f1, Mat_<double> &f2);
+
+void energy_functions_from_prefiting_functions
+(const Mat_<uchar> & image, const Mat_<double> & prefitting_kernel,
+ const Mat_<double> & prefit1, const Mat_<double> & prefit2,
+ Mat & energy1, Mat & energy2);
+
+
+
+void energy_functions_top_level(const Mat_<uchar> &image, const Mat_<double> &kernel, Mat_<double> &energy_1, Mat_<double> &energy_2) {
+
+
+    // step one - LOCAL PREFITTING FUNCTIONS
+
+    Mat_<double> prefitting_1;
+    Mat_<double> prefitting_2;
+
+    local_prefitting_functions
+        (image, kernel, prefitting_1, prefitting_2);
+
+
+    // step two - ENERGY FUNCTIONS based on local prefitting functions
+
+    energy_functions_from_prefiting_functions
+        (image, kernel, prefitting_1, prefitting_2, energy_1, energy_2);
+
+}
+
 void local_prefitting_functions(const Mat_<uchar> & image, const Mat_<double> & kernel, Mat_<double> &f1, Mat_<double> &f2) {
 
     // KK - additional helper kernel
@@ -52,6 +80,7 @@ void local_prefitting_functions(const Mat_<uchar> & image, const Mat_<double> & 
 
 
             // PARTITIONING
+
             /*
               1) partition window into two parts (greater and smaller than mean_value)
               2) partition KK kernel in the same way

@@ -44,57 +44,57 @@ int main() {
     double sigma = 2; // control local size
 
 
-    // LOCAL PRE-FITTING FUNCTIONS
+    // PREPARE ENERGY FUNCTIONS (based on LOCAL PREFITTING FUNCTIONS)
 
     int gauss_kernel_size = round(2 * sigma) * 2 + 1;
-
     Mat_<double> gauss_kernel_1d = getGaussianKernel(gauss_kernel_size, sigma, CV_64FC1);
     Mat_<double> gauss_kernel_2d = gauss_kernel_1d * gauss_kernel_1d.t();
+
     Mat_<double> prefitting_kernel = gauss_kernel_2d;
+    Mat_<double> energy1, energy2;
 
-
-    Mat_<double> prefitting_1;
-    Mat_<double> prefitting_2;
-
-    local_prefitting_functions(image, prefitting_kernel, prefitting_1, prefitting_2);
-
-
-    // CALCULATE ENERGY FUNCTIONS
-
-    Mat energy1, energy2;
-
-    energy_functions_from_prefiting_functions(image, prefitting_kernel, prefitting_1, prefitting_2, energy1, energy2);
+    energy_functions_top_level(image, prefitting_kernel, energy1, energy2);
 
 
     // LEVEL SET EVOLUTION
 
-    Mat_<double> LSF = initialLSF.clone();
+    namedWindow("debug_window", WINDOW_NORMAL);
+    resizeWindow("debug_window", 500, 500);
 
-    namedWindow("x", WINDOW_NORMAL);
-    resizeWindow("x", 500, 500);
+    Mat_<double> LSF = initialLSF;
 
     for(int i=0; i<iterations_number; i++) {
-      LSF = active_contour_with_local_prefitting_functions(LSF, nu, timestep, mu, epsilon, lambda1, lambda2, energy1, energy2);
 
-      // print every X iteration
+      // work here
+
+      LSF = active_contour_step(LSF, nu, timestep, mu, epsilon,
+                                lambda1, lambda2,
+                                energy1, energy2);
+
+
+      // TODO - main loop end condition for changing area
+
+      // print here - every X iteration
 
       int X = 10;
 
       if(i % X == 0) {
-        Mat new_image = decorate_with_contours_from_acm_matrix(image, LSF);
+        Mat display_image = decorate_with_contours_from_acm_matrix(image, LSF);
 
-        resize(new_image, new_image, Size(250,250));
+        resize(display_image, display_image, Size(250,250));
 
         // text: iteration number X
-        putText(new_image, "Item: "+to_string(i), Point(20,20), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(250));
+        putText(display_image, "Iter: "+to_string(i), Point(20,20), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(250));
 
-        imshow("x", new_image);
+        imshow("debug_window", display_image);
 
         int wait_time = 300;
         waitKey(wait_time);
       }
 
+
     }
+
 
     waitKey();
 
