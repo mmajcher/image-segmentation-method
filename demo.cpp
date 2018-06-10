@@ -36,20 +36,24 @@ bool _should_display_image(int iteration) {
 
 
 
-int main() {
+int main(int argc, char** argv) {
 
-    // TODO CommandLineParser
+    String cmdline_options =
+            "{help h | | print this message }"
+            "{initial-contour | | specify file with initial contour description }"
+            "{save-all-images-to-dir | | specify directory to save all iterations' images into }"
+            "{save-final-contour | | specify file to save final contour points }"
+            "{save-last-image | | specify file for saving last image}"
+            ;
 
-    short OPTION_READ_INITIAL_LSF = 0;
-    short OPTION_SAVE_ALL = 0;
-    short OPTION_SAVE_CONTOURS = 0;
-    short OPTION_SAVE_LAST = 0;
-    String OPTION_SAVE_CONTOURS_FILENAME = "saved_contours";
+    CommandLineParser parser(argc, argv, cmdline_options);
 
+    if(parser.has("help")) {
+        parser.printMessage();
+        return 0;
+    }
 
     namedWindow("display", WINDOW_NORMAL);
-    resizeWindow("display", 500, 500);
-
 
     // READ AND DISPLAY IMAGE
 
@@ -65,8 +69,9 @@ int main() {
 
     Mat_<double> initialLSF;
 
-    if(OPTION_READ_INITIAL_LSF) {
-        // TODO read Initial lsf from file
+    if(parser.has("initial-contour")) {
+        String initial_contour_filename = parser.get<String>("initial-contour");
+        _read_initial_lsf_from_file(image.size(), initial_contour_filename);
     }
     else {
         // default; random rectangle
@@ -115,7 +120,7 @@ int main() {
       LSF = acm_advance(LSF, nu, timestep, mu, epsilon, lambda1, lambda2, energy1, energy2);
 
 
-      if(_should_display_image(i) || OPTION_SAVE_ALL ) {
+      if(_should_display_image(i) || parser.has("save-all-images") ) {
 
         // 1 - get contours
 
@@ -124,7 +129,8 @@ int main() {
 
         // 2 - save frame
 
-        if(OPTION_SAVE_ALL) {
+        if(parser.has("save-all-images-to-dir")) {
+            String save_all_dir = parser.get<String>("save-all-images-to-dir");
             // TODO write_image_to_file
         }
 
@@ -136,7 +142,7 @@ int main() {
             display_image = _get_image_annotated(annotation, display_image);
 
             // display
-            resize(display_image, display_image, Size(250,250));
+            resize(display_image, display_image, Size(500,500));
             imshow("display", display_image);
             waitKey(FRAME_PRESENTATION_TIME);
         }
@@ -147,14 +153,16 @@ int main() {
 
     // ==== FINALIZE
 
-    if(OPTION_SAVE_CONTOURS) {
-    // TODO save contours to file if OPTION_SAVE_CONTOURS
-        _write_contours_to_file(acm_get_contours(LSF), OPTION_SAVE_CONTOURS_FILENAME);
+    if(parser.has("save-final-contours")) {
+        String final_contours_filename = parser.get<String>("save-final-contours");
+        _write_contours_to_file(acm_get_contours(LSF), final_contours_filename);
     }
 
-    if(OPTION_SAVE_LAST) {
-    // TODO save image to file if OPTION_SAVE_LAST
-    //       _write_image_fo_file()
+    if(parser.has("save-last-image")) {
+        String final_image_filename = parser.get<String>("save-last-image");
+        // TODO save image to file if OPTION_SAVE_LAST
+        // should check extension???
+        //       _write_image_fo_file()
     }
 
     waitKey();
