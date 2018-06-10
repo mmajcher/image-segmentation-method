@@ -16,54 +16,13 @@ using namespace std;
 #define FRAME_PRESENTATION_TIME 100
 
 
-Mat _decorate_with_contours(const Mat &image, vector<vector<Point>> contours) {
+Mat _get_image_decorated_with_contours(const Mat &image, vector<vector<Point>> contours);
+Mat _get_image_annotated(String text, const Mat &image);
+void _display_image(const Mat &image, String display, String caption);
 
-    Mat decorated = image.clone();
+Mat _read_initial_lsf_from_file(Size image_size, String filename);
+void _write_contours_to_file(vector<vector<Point>> contours, String filename);
 
-    int which_contour = -1;     // means 'all'
-    Scalar colour(250);
-    drawContours(decorated, contours, which_contour, colour);
-
-    return decorated;
-}
-
-Mat _annotate(String text, const Mat &image) {
-    Mat annotated = image.clone();
-
-    putText(annotated, text, Point(20, 20), FONT_HERSHEY_SIMPLEX, 0.5,
-            Scalar(250));
-
-    return annotated;
-}
-
-Mat _read_initial_lsf_from_file(Size image_size, String filename) {
-
-    // TODO read lsf from file
-
-    return Mat::zeros(image_size, CV_64FC1);
-}
-
-void _write_contours_to_file(vector<vector<Point>> contours, String filename) {
-
-    // TODO write contours to file
-}
-
-
-
-void _image_display(const Mat &image, String display, String caption) {
-
-    Mat display_image = image;
-
-    if(caption.length() > 0) {
-        display_image = image.clone();
-
-        putText(display_image, caption, Point(20, 20), FONT_HERSHEY_SIMPLEX, 0.5,
-                Scalar(250));
-    }
-
-    imshow(display, display_image);
-    waitKey(FRAME_PRESENTATION_TIME);
-}
 
 bool _should_display_image(int iteration) {
     if(iteration < 5 )
@@ -96,10 +55,11 @@ int main() {
 
     Mat_<uchar> image = imread("images/2.bmp", IMREAD_GRAYSCALE);
 
-    _image_display(image, "display", "image");
+    _display_image(image, "display", "image");
 
 
-    // INITIAL LSF
+    // ==== INITIAL CONTOUR
+
     // -- mat<double> of same size as image
     // -- contours are drawn around areas with negative values
 
@@ -115,16 +75,13 @@ int main() {
         initialLSF(some_rectangle).setTo(-1.0);
     }
 
-    // -- or only ones? (or zeros?)
-    // initialLSF = Mat::ones(image.size(), CV_64FC1);
-
     vector<vector<Point>> initial_contours = acm_get_contours(initialLSF);
 
-    _image_display(_decorate_with_contours(image, initial_contours), "display",
+    _display_image(_get_image_decorated_with_contours(image, initial_contours), "display",
             "initial contour");
 
 
-    // ACM PARAMETERS
+    // ==== PARAMS
 
     int mu = 1;
     double nu = 0.01 * 255 * 255;
@@ -136,7 +93,7 @@ int main() {
     double sigma = 2; // control local size
 
 
-    // ENERGY FUNCTIONS based on local prefitting functions
+    // ==== LOCAL PREFITTING ENERGY FUNCTIONS
 
     int gauss_kernel_size = round(2 * sigma) * 2 + 1;
     Mat_<double> gauss_kernel_1d = getGaussianKernel(gauss_kernel_size, sigma, CV_64FC1);
@@ -148,35 +105,35 @@ int main() {
     energy_functions_top_level(image, prefitting_kernel, energy1, energy2);
 
 
-    // ACM LOOP
+    // ==== ACM LOOP
 
     Mat_<double> LSF = initialLSF;
 
     for(int i=1; i<=iterations_number; i++) {
 
-      // contours evolution
 
-      LSF = acm_advance(LSF, nu, timestep, mu, epsilon,
-                                lambda1, lambda2,
-                                energy1, energy2);
+      LSF = acm_advance(LSF, nu, timestep, mu, epsilon, lambda1, lambda2, energy1, energy2);
 
-
-      // print here - first 5 and then every Xth iteration
 
       if(_should_display_image(i) || OPTION_SAVE_ALL ) {
 
-        // contours
+        // 1 - get contours
+
         vector<vector<Point>> contours = acm_get_contours(LSF);
-        Mat display_image = _decorate_with_contours(image, contours);
+        Mat display_image = _get_image_decorated_with_contours(image, contours);
+
+        // 2 - save frame
 
         if(OPTION_SAVE_ALL) {
-            // write_image_to_file
+            // TODO write_image_to_file
         }
+
+        // 3 - display frame
 
         if(_should_display_image(i)) {
             // annotation
             String annotation = "iter: " + to_string(i);
-            display_image = _annotate(annotation, display_image);
+            display_image = _get_image_annotated(annotation, display_image);
 
             // display
             resize(display_image, display_image, Size(250,250));
@@ -184,8 +141,11 @@ int main() {
             waitKey(FRAME_PRESENTATION_TIME);
         }
       }
+
     }
 
+
+    // ==== FINALIZE
 
     if(OPTION_SAVE_CONTOURS) {
     // TODO save contours to file if OPTION_SAVE_CONTOURS
@@ -200,4 +160,55 @@ int main() {
     waitKey();
 
     return 0;
+}
+
+
+
+// TODO create 'utility.cpp' and extract those
+
+Mat _get_image_decorated_with_contours(const Mat &image, vector<vector<Point>> contours) {
+
+    Mat decorated = image.clone();
+
+    int which_contour = -1;     // means 'all'
+    Scalar colour(250);
+    drawContours(decorated, contours, which_contour, colour);
+
+    return decorated;
+}
+
+Mat _get_image_annotated(String text, const Mat &image) {
+    Mat annotated = image.clone();
+
+    putText(annotated, text, Point(20, 20), FONT_HERSHEY_SIMPLEX, 0.5,
+            Scalar(250));
+
+    return annotated;
+}
+
+void _display_image(const Mat &image, String display, String caption) {
+
+    Mat display_image = image;
+
+    if(caption.length() > 0) {
+        display_image = image.clone();
+
+        putText(display_image, caption, Point(20, 20), FONT_HERSHEY_SIMPLEX, 0.5,
+                Scalar(250));
+    }
+
+    imshow(display, display_image);
+    waitKey(FRAME_PRESENTATION_TIME);
+}
+
+Mat _read_initial_lsf_from_file(Size image_size, String filename) {
+
+    // TODO read lsf from file
+
+    return Mat::zeros(image_size, CV_64FC1);
+}
+
+void _write_contours_to_file(vector<vector<Point>> contours, String filename) {
+
+    // TODO write contours to file
 }
