@@ -1,21 +1,21 @@
 
 #include "active_contour_method.h"
 
-Mat curvature_central(const Mat & LSF);
-Mat neumann_boundary_condition(const Mat &in);
+Mat _curvature_central(const Mat & LSF);
+Mat _neumann_boundary_condition(const Mat &in);
 
 
 // MAIN FUNCTION
 
-Mat_<double> active_contour_step
+Mat_<double> acm_advance
 (Mat_<double> LSF_init, double nu, double timestep, double mu, double epsilon, double lambda1, double lambda2, Mat_<double> energy1, Mat_<double> energy2) {
 
 
     Mat_<double> LSF = LSF_init.clone();
 
-    LSF = neumann_boundary_condition(LSF);
+    LSF = _neumann_boundary_condition(LSF);
 
-    Mat_<double> K = curvature_central(LSF);
+    Mat_<double> K = _curvature_central(LSF);
 
     Mat_<double> DrcU = 1 / (LSF.mul(LSF) + epsilon * epsilon) * epsilon / M_PI;
 
@@ -80,7 +80,7 @@ Mat_<double> active_contour_step
 
 // HELPER
 
-Mat curvature_central(const Mat & LSF) {
+Mat _curvature_central(const Mat & LSF) {
 
     // return K; same size and type as LSF
     Mat K(LSF.size(), LSF.type());
@@ -107,11 +107,13 @@ Mat curvature_central(const Mat & LSF) {
 
 // HELPER
 
-Mat neumann_boundary_condition(const Mat &in) {
+Mat _neumann_boundary_condition(const Mat &in) {
 
     // copies values that are 2 pixels away from borders onto borders
 
     Mat out = in.clone();
+
+    // TODO corners copying is redundant?
 
     // 4 corners
 
@@ -146,36 +148,22 @@ Mat neumann_boundary_condition(const Mat &in) {
 
 // ADDITIONAL UTILITY
 
-Mat_<uchar> decorate_with_contours_from_acm_matrix
-(const Mat_<uchar> &image, const Mat_<double> &LSF) {
-    // draw contour based on LSF
-    // (contours are drawn around areas with negative values)
+// TODO move this up
+vector<vector<Point>> acm_get_contours(const Mat_<double> &LSF) {
 
-    // it tries to imitate Matlab behaviour for drawing contours
+	// WE ARE INTERESTED IN AREAS WITH NEGATIVE LSF VALUES
 
-    Mat new_image = image.clone();
+	Mat negative_areas;
 
-    Mat contour_mat;
-
-    // only take negative
     double limit = 0.0;
-    threshold(LSF, contour_mat, limit, 1, THRESH_BINARY);
-
-    // convert to uchars
-    contour_mat.convertTo(contour_mat, CV_8UC1, 255.0);
-
-    // swap negative/positive
-    contour_mat = contour_mat * -1 + 255;
+    // TODO what is this "1" here
+    threshold(LSF, negative_areas, limit, 1, THRESH_BINARY_INV);
 
     // find contours (positive areas)
     vector<vector<Point>> contours;
-    findContours(contour_mat, contours, RETR_LIST, CHAIN_APPROX_NONE);
+    findContours(negative_areas, contours, RETR_LIST, CHAIN_APPROX_NONE);
 
-    Mat_<uchar> clean_img = Mat::zeros(image.size(), CV_8UC1);
-
-    int which_contour = -1;     // means 'all'
-    Scalar colour(250);
-    drawContours(new_image, contours, which_contour, colour);
-
-    return new_image;
+    // TODO won't contours get deallocated?
+    return contours;
 }
+

@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <chrono>
 #include <limits>
+#include <vector>
 
 #include "active_contour_method.h"
 #include "local_prefitting_functions.h"
@@ -12,26 +13,118 @@
 using namespace cv;
 using namespace std;
 
+#define FRAME_PRESENTATION_TIME 100
+
+
+Mat _decorate_with_contours(const Mat &image, vector<vector<Point>> contours) {
+
+    Mat decorated = image.clone();
+
+    int which_contour = -1;     // means 'all'
+    Scalar colour(250);
+    drawContours(decorated, contours, which_contour, colour);
+
+    return decorated;
+}
+
+Mat _annotate(String text, const Mat &image) {
+    Mat annotated = image.clone();
+
+    putText(annotated, text, Point(20, 20), FONT_HERSHEY_SIMPLEX, 0.5,
+            Scalar(250));
+
+    return annotated;
+}
+
+Mat _read_initial_lsf_from_file(Size image_size, String filename) {
+
+    // TODO read lsf from file
+
+    return Mat::zeros(image_size, CV_64FC1);
+}
+
+void _write_contours_to_file(vector<vector<Point>> contours, String filename) {
+
+    // TODO write contours to file
+}
+
+
+
+void _image_display(const Mat &image, String display, String caption) {
+
+    Mat display_image = image;
+
+    if(caption.length() > 0) {
+        display_image = image.clone();
+
+        putText(display_image, caption, Point(20, 20), FONT_HERSHEY_SIMPLEX, 0.5,
+                Scalar(250));
+    }
+
+    imshow(display, display_image);
+    waitKey(FRAME_PRESENTATION_TIME);
+}
+
+bool _should_display_image(int iteration) {
+    if(iteration < 5 )
+        return true;
+
+    if(iteration % 10 == 0)
+        return true;
+
+    return false;
+}
+
 
 
 int main() {
 
+    // TODO CommandLineParser
+
+    short OPTION_READ_INITIAL_LSF = 0;
+    short OPTION_SAVE_ALL = 0;
+    short OPTION_SAVE_CONTOURS = 0;
+    short OPTION_SAVE_LAST = 0;
+    String OPTION_SAVE_CONTOURS_FILENAME = "saved_contours";
+
+
+    namedWindow("display", WINDOW_NORMAL);
+    resizeWindow("display", 500, 500);
+
+
+    // READ AND DISPLAY IMAGE
+
     Mat_<uchar> image = imread("images/2.bmp", IMREAD_GRAYSCALE);
+
+    _image_display(image, "display", "image");
 
 
     // INITIAL LSF
+    // -- mat<double> of same size as image
+    // -- contours are drawn around areas with negative values
 
-    Mat_<double> initialLSF = Mat::ones(image.size(), CV_64FC1);
+    Mat_<double> initialLSF;
 
-    Rect some_rectangle(Point(40, 15), Size(20, 20));
-
-    initialLSF(some_rectangle).setTo(-1.0);
+    if(OPTION_READ_INITIAL_LSF) {
+        // TODO read Initial lsf from file
+    }
+    else {
+        // default; random rectangle
+        initialLSF = Mat::ones(image.size(), CV_64FC1);
+        Rect some_rectangle(Point(40, 15), Size(20, 20));
+        initialLSF(some_rectangle).setTo(-1.0);
+    }
 
     // -- or only ones? (or zeros?)
     // initialLSF = Mat::ones(image.size(), CV_64FC1);
 
+    vector<vector<Point>> initial_contours = acm_get_contours(initialLSF);
 
-    // PARAMETERS
+    _image_display(_decorate_with_contours(image, initial_contours), "display",
+            "initial contour");
+
+
+    // ACM PARAMETERS
 
     int mu = 1;
     double nu = 0.01 * 255 * 255;
@@ -43,7 +136,7 @@ int main() {
     double sigma = 2; // control local size
 
 
-    // PREPARE ENERGY FUNCTIONS (based on LOCAL PREFITTING FUNCTIONS)
+    // ENERGY FUNCTIONS based on local prefitting functions
 
     int gauss_kernel_size = round(2 * sigma) * 2 + 1;
     Mat_<double> gauss_kernel_1d = getGaussianKernel(gauss_kernel_size, sigma, CV_64FC1);
@@ -55,52 +148,53 @@ int main() {
     energy_functions_top_level(image, prefitting_kernel, energy1, energy2);
 
 
-    // DISPLAY INITIAL IMAGE
-
-    namedWindow("debug_window", WINDOW_NORMAL);
-    resizeWindow("debug_window", 500, 500);
-
-    Mat display_image = image.clone();
-    resize(display_image, display_image, Size(250,250));
-    putText(display_image, "initial", Point(20,20), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(250));
-    imshow("debug_window", display_image);
-    waitKey();
-
-
-    // LEVEL SET EVOLUTION
+    // ACM LOOP
 
     Mat_<double> LSF = initialLSF;
 
+    for(int i=1; i<=iterations_number; i++) {
 
-    for(int i=0; i<iterations_number; i++) {
+      // contours evolution
 
-      // work here
-
-      LSF = active_contour_step(LSF, nu, timestep, mu, epsilon,
+      LSF = acm_advance(LSF, nu, timestep, mu, epsilon,
                                 lambda1, lambda2,
                                 energy1, energy2);
 
 
-      // TODO - main loop end condition for changing area
+      // print here - first 5 and then every Xth iteration
 
-      // print here - every X iteration
+      if(_should_display_image(i) || OPTION_SAVE_ALL ) {
 
-      int X = 10;
-      if(i % X == 0) {
-        Mat display_image = decorate_with_contours_from_acm_matrix(image, LSF);
+        // contours
+        vector<vector<Point>> contours = acm_get_contours(LSF);
+        Mat display_image = _decorate_with_contours(image, contours);
 
-        resize(display_image, display_image, Size(250,250));
+        if(OPTION_SAVE_ALL) {
+            // write_image_to_file
+        }
 
-        // text: iteration number X
-        putText(display_image, "Iter: "+to_string(i), Point(20,20), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(250));
+        if(_should_display_image(i)) {
+            // annotation
+            String annotation = "iter: " + to_string(i);
+            display_image = _annotate(annotation, display_image);
 
-        imshow("debug_window", display_image);
-
-        int wait_time = 300;
-        waitKey(wait_time);
+            // display
+            resize(display_image, display_image, Size(250,250));
+            imshow("display", display_image);
+            waitKey(FRAME_PRESENTATION_TIME);
+        }
       }
+    }
 
 
+    if(OPTION_SAVE_CONTOURS) {
+    // TODO save contours to file if OPTION_SAVE_CONTOURS
+        _write_contours_to_file(acm_get_contours(LSF), OPTION_SAVE_CONTOURS_FILENAME);
+    }
+
+    if(OPTION_SAVE_LAST) {
+    // TODO save image to file if OPTION_SAVE_LAST
+    //       _write_image_fo_file()
     }
 
     waitKey();
