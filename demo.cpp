@@ -114,39 +114,40 @@ int main(int argc, char** argv) {
 
     Mat_<double> LSF = initialLSF;
 
-    for(int i=1; i<=iterations_number; i++) {
+    for (int i = 1; i <= iterations_number; i++) {
 
+        LSF = acm_advance(LSF, nu, timestep, mu, epsilon, lambda1, lambda2,
+                energy1, energy2);
 
-      LSF = acm_advance(LSF, nu, timestep, mu, epsilon, lambda1, lambda2, energy1, energy2);
+        if(_should_display_image(i) || parser.has("save-all-images")) {
 
+            // 1 - get contours
 
-      if(_should_display_image(i) || parser.has("save-all-images") ) {
+            vector<vector<Point>> contours = acm_get_contours(LSF);
+            Mat display_image = _get_image_decorated_with_contours(image,
+                    contours);
 
-        // 1 - get contours
+            // 2 - save frame
 
-        vector<vector<Point>> contours = acm_get_contours(LSF);
-        Mat display_image = _get_image_decorated_with_contours(image, contours);
+            if(parser.has("save-all-images-to-dir")) {
+                String save_all_dir = parser.get<String>(
+                        "save-all-images-to-dir");
+                // TODO write_image_to_file
+            }
 
-        // 2 - save frame
+            // 3 - display frame
 
-        if(parser.has("save-all-images-to-dir")) {
-            String save_all_dir = parser.get<String>("save-all-images-to-dir");
-            // TODO write_image_to_file
+            if(_should_display_image(i)) {
+                // annotation
+                String annotation = "iter: " + to_string(i);
+                display_image = _get_image_annotated(annotation, display_image);
+
+                // display
+                resize(display_image, display_image, Size(500, 500));
+                imshow("display", display_image);
+                waitKey(FRAME_PRESENTATION_TIME);
+            }
         }
-
-        // 3 - display frame
-
-        if(_should_display_image(i)) {
-            // annotation
-            String annotation = "iter: " + to_string(i);
-            display_image = _get_image_annotated(annotation, display_image);
-
-            // display
-            resize(display_image, display_image, Size(500,500));
-            imshow("display", display_image);
-            waitKey(FRAME_PRESENTATION_TIME);
-        }
-      }
 
     }
 
