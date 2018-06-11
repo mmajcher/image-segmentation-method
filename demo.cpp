@@ -14,7 +14,7 @@
 using namespace cv;
 using namespace std;
 
-#define FRAME_PRESENTATION_TIME 100
+#define FRAME_PRESENTATION_TIME -1
 
 
 Mat _get_image_decorated_with_contours(const Mat &image, vector<vector<Point>> contours);
@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
             "{help h | | print this message }"
             "{initial-contour | | specify file with initial contour description }"
             "{save-all-images-to-dir | | specify directory to save images from every iteration into }"
-            "{save-final-contour | | specify file to save final contour points }"
+            "{save-final-contours | | specify file to save final contour points }"
             "{save-last-image | | specify file for saving last image}"
             ;
 
@@ -71,8 +71,8 @@ int main(int argc, char** argv) {
     Mat_<double> initialLSF;
 
     if(parser.has("initial-contour")) {
-        string initial_contour_filename = parser.get<string>("initial-contour");
-        _read_initial_lsfmatrix_from_file(image.size(), initial_contour_filename);
+        string initial_contour_filename = parser.get<String>("initial-contour");
+        initialLSF = _read_initial_lsfmatrix_from_file(image.size(), initial_contour_filename);
     }
     else {
         // default; random rectangle
@@ -88,6 +88,8 @@ int main(int argc, char** argv) {
 
 
     // ==== PARAMS
+
+    // TODO push those params to CommandLineParser
 
     int mu = 1;
     double nu = 0.01 * 255 * 255;
@@ -120,7 +122,7 @@ int main(int argc, char** argv) {
         LSF = acm_advance(LSF, nu, timestep, mu, epsilon, lambda1, lambda2,
                 energy1, energy2);
 
-        if(_should_display_image(i) || parser.has("save-all-images")) {
+        if(_should_display_image(i) || parser.has("save-all-images-to-dir")) {
 
             // 1 - get contours
 
@@ -141,12 +143,9 @@ int main(int argc, char** argv) {
             if(_should_display_image(i)) {
                 // annotation
                 string annotation = "iter: " + to_string(i);
-                display_image = _get_image_annotated(annotation, display_image);
 
                 // display
-                resize(display_image, display_image, Size(500, 500));
-                imshow("display", display_image);
-                waitKey(FRAME_PRESENTATION_TIME);
+                _display_image(display_image, "display", annotation);
             }
         }
 
@@ -187,14 +186,6 @@ Mat _get_image_decorated_with_contours(const Mat &image, vector<vector<Point>> c
     return decorated;
 }
 
-Mat _get_image_annotated(string text, const Mat &image) {
-    Mat annotated = image.clone();
-
-    putText(annotated, text, Point(20, 20), FONT_HERSHEY_SIMPLEX, 0.5,
-            Scalar(250));
-
-    return annotated;
-}
 
 void _display_image(const Mat &image, string display, string caption) {
 
@@ -203,7 +194,7 @@ void _display_image(const Mat &image, string display, string caption) {
     if(caption.length() > 0) {
         display_image = image.clone();
 
-        putText(display_image, caption, Point(20, 20), FONT_HERSHEY_SIMPLEX, 0.5,
+        putText(display_image, caption, Point(10,10), FONT_HERSHEY_SIMPLEX, 0.3,
                 Scalar(250));
     }
 
@@ -213,15 +204,38 @@ void _display_image(const Mat &image, string display, string caption) {
 
 Mat _read_initial_lsfmatrix_from_file(Size image_size, string filename) {
 
-    // TODO read lsf from file
-
-    ifstream in(filename);
+    ifstream in(filename, ifstream::in);
 
     string shape;
-
     in >> shape;
 
-    return Mat::zeros(image_size, CV_64FC1);
+    cout << "initial contours, shape: " << shape << endl;
+
+    Mat_<double> initial_lsf = Mat::ones(image_size, CV_64FC1);
+
+    if(shape == "rectangle") {
+        Point top_left, bot_right;
+
+        in >> top_left.x >> top_left.y >> bot_right.x >> bot_right.y;
+
+        cout << "rectangle " << top_left << bot_right << endl;
+        initial_lsf(Rect(top_left, bot_right)).setTo(-1.0);
+    }
+    else if(shape == "ellipse") {
+        // TODO ellipse
+    }
+    else if(shape == "circle") {
+        // TODO circle
+    }
+    else if(shape == "contour") {
+        // TODO contour points
+    }
+    else {
+        cout << "unknown initial-contour shape; please use: rectangle ellipse circle" << endl;
+        exit(1);
+    }
+
+    return initial_lsf;
 }
 
 void _write_contours_to_file(vector<vector<Point>> contours, string filename) {
