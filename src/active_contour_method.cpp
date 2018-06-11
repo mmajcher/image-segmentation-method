@@ -153,17 +153,17 @@ vector<vector<Point>> acm_get_contours(const Mat_<double> &LSF) {
 
 	// WE ARE INTERESTED IN AREAS WITH NEGATIVE LSF VALUES
 
-	Mat negative_areas;
+    Mat negative_areas;
 
     double limit = 0.0;
-    // TODO what is this "1" here
     threshold(LSF, negative_areas, limit, 1, THRESH_BINARY_INV);
+
+    negative_areas.convertTo(negative_areas, CV_8UC1, 255.0);
 
     // find contours (positive areas)
     vector<vector<Point>> contours;
     findContours(negative_areas, contours, RETR_LIST, CHAIN_APPROX_NONE);
 
-    // TODO won't contours get deallocated?
     return contours;
 }
 
