@@ -2,6 +2,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include <iostream>
+#include <fstream>
 #include <cstdlib>
 #include <chrono>
 #include <limits>
@@ -17,11 +18,11 @@ using namespace std;
 
 
 Mat _get_image_decorated_with_contours(const Mat &image, vector<vector<Point>> contours);
-Mat _get_image_annotated(String text, const Mat &image);
-void _display_image(const Mat &image, String display, String caption);
+Mat _get_image_annotated(string text, const Mat &image);
+void _display_image(const Mat &image, string display, string caption);
 
-Mat _read_initial_lsf_from_file(Size image_size, String filename);
-void _write_contours_to_file(vector<vector<Point>> contours, String filename);
+Mat _read_initial_lsfmatrix_from_file(Size image_size, string filename);
+void _write_contours_to_file(vector<vector<Point>> contours, string filename);
 
 
 bool _should_display_image(int iteration) {
@@ -38,10 +39,10 @@ bool _should_display_image(int iteration) {
 
 int main(int argc, char** argv) {
 
-    String cmdline_options =
+    string cmdline_options =
             "{help h | | print this message }"
             "{initial-contour | | specify file with initial contour description }"
-            "{save-all-images-to-dir | | specify directory to save all iterations' images into }"
+            "{save-all-images-to-dir | | specify directory to save images from every iteration into }"
             "{save-final-contour | | specify file to save final contour points }"
             "{save-last-image | | specify file for saving last image}"
             ;
@@ -70,8 +71,8 @@ int main(int argc, char** argv) {
     Mat_<double> initialLSF;
 
     if(parser.has("initial-contour")) {
-        String initial_contour_filename = parser.get<String>("initial-contour");
-        _read_initial_lsf_from_file(image.size(), initial_contour_filename);
+        string initial_contour_filename = parser.get<string>("initial-contour");
+        _read_initial_lsfmatrix_from_file(image.size(), initial_contour_filename);
     }
     else {
         // default; random rectangle
@@ -130,7 +131,7 @@ int main(int argc, char** argv) {
             // 2 - save frame
 
             if(parser.has("save-all-images-to-dir")) {
-                String save_all_dir = parser.get<String>(
+                string save_all_dir = parser.get<string>(
                         "save-all-images-to-dir");
                 // TODO write_image_to_file
             }
@@ -139,7 +140,7 @@ int main(int argc, char** argv) {
 
             if(_should_display_image(i)) {
                 // annotation
-                String annotation = "iter: " + to_string(i);
+                string annotation = "iter: " + to_string(i);
                 display_image = _get_image_annotated(annotation, display_image);
 
                 // display
@@ -155,12 +156,12 @@ int main(int argc, char** argv) {
     // ==== FINALIZE
 
     if(parser.has("save-final-contours")) {
-        String final_contours_filename = parser.get<String>("save-final-contours");
+        string final_contours_filename = parser.get<string>("save-final-contours");
         _write_contours_to_file(acm_get_contours(LSF), final_contours_filename);
     }
 
     if(parser.has("save-last-image")) {
-        String final_image_filename = parser.get<String>("save-last-image");
+        string final_image_filename = parser.get<string>("save-last-image");
         // TODO save image to file if OPTION_SAVE_LAST
         // should check extension???
         //       _write_image_fo_file()
@@ -186,7 +187,7 @@ Mat _get_image_decorated_with_contours(const Mat &image, vector<vector<Point>> c
     return decorated;
 }
 
-Mat _get_image_annotated(String text, const Mat &image) {
+Mat _get_image_annotated(string text, const Mat &image) {
     Mat annotated = image.clone();
 
     putText(annotated, text, Point(20, 20), FONT_HERSHEY_SIMPLEX, 0.5,
@@ -195,7 +196,7 @@ Mat _get_image_annotated(String text, const Mat &image) {
     return annotated;
 }
 
-void _display_image(const Mat &image, String display, String caption) {
+void _display_image(const Mat &image, string display, string caption) {
 
     Mat display_image = image;
 
@@ -210,14 +211,20 @@ void _display_image(const Mat &image, String display, String caption) {
     waitKey(FRAME_PRESENTATION_TIME);
 }
 
-Mat _read_initial_lsf_from_file(Size image_size, String filename) {
+Mat _read_initial_lsfmatrix_from_file(Size image_size, string filename) {
 
     // TODO read lsf from file
+
+    ifstream in(filename);
+
+    string shape;
+
+    in >> shape;
 
     return Mat::zeros(image_size, CV_64FC1);
 }
 
-void _write_contours_to_file(vector<vector<Point>> contours, String filename) {
+void _write_contours_to_file(vector<vector<Point>> contours, string filename) {
 
     // TODO write contours to file
 }
