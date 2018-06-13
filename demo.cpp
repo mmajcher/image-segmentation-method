@@ -35,15 +35,16 @@ bool _should_display_image(int iteration) {
 }
 
 
+// TODO document options & usage
 
 int main(int argc, char** argv) {
 
     string cmdline_options =
             "{help h | | print this message }"
             "{initial-contour | <none> | specify file with initial contour description }"
-            "{save-all-images-to-dir | <none> | specify directory to save images from every iteration into }"
-            "{save-final-contours | <none> | specify file to save final contour points }"
-            "{save-last-image | <none> | specify file for saving last image}"
+            "{save-all-images-to-dir | <none> | specify directory to save images (with contours) from every iteration into }"
+            "{save-final-contours | <none> | specify file to save final contour points coordinates }"
+            "{save-last-image | <none> | specify file for saving last image (with contours)}"
 
             "{mu | 1.0 | acm param}"
             "{nu | 650.0 | acm param}"
