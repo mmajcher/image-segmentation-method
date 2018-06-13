@@ -259,5 +259,16 @@ Mat _read_initial_lsfmatrix_from_file(Size image_size, string filename) {
 
 void _write_contours_to_file(vector<vector<Point>> contours, string filename) {
 
-    // TODO write contours to file
+    ofstream fout(filename);
+
+    for(int i=0; i<contours.size(); i++) {
+        vector<Point> contour = contours[i];
+
+        fout << "contour - " << i+1 << endl;
+
+        for(Point p : contour) {
+            fout << p.x << " " << p.y << endl;
+        }
+    }
+
 }

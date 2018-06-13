@@ -92,7 +92,7 @@ vector<vector<Point>> acm_get_contours(const Mat_<double> &LSF) {
 
     // find contours (positive areas)
     vector<vector<Point>> contours;
-    findContours(negative_areas, contours, RETR_LIST, CHAIN_APPROX_NONE);
+    findContours(negative_areas, contours, RETR_LIST, CHAIN_APPROX_SIMPLE);
 
     return contours;
 }
