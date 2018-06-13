@@ -140,9 +140,12 @@ int main(int argc, char** argv) {
             // 2 - save frame
 
             if(parser.has("save-all-images-to-dir")) {
-                string save_all_dir = parser.get<string>(
-                        "save-all-images-to-dir");
-                // TODO write_image_to_file
+                string save_all_dir = parser.get<string>( "save-all-images-to-dir");
+                char iter_num[5];
+                sprintf(iter_num, "%04d", i);
+                string filename = save_all_dir + "/" + "iter_" + iter_num + ".jpg";
+                cout << "saving image: " << filename << endl;
+                imwrite(filename, display_image);
             }
 
             // 3 - display frame
@@ -168,9 +171,10 @@ int main(int argc, char** argv) {
 
     if(parser.has("save-last-image")) {
         string final_image_filename = parser.get<string>("save-last-image");
-        // TODO save image to file if OPTION_SAVE_LAST
-        // should check extension???
-        //       _write_image_fo_file()
+
+        vector<vector<Point>> final_contours = acm_get_contours(LSF);
+
+        imwrite(final_image_filename, _get_image_decorated_with_contours(image, final_contours));
     }
 
     waitKey();
