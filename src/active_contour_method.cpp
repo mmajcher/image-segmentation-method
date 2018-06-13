@@ -78,6 +78,26 @@ Mat_<double> acm_advance
     return LSF;
 }
 
+
+vector<vector<Point>> acm_get_contours(const Mat_<double> &LSF) {
+
+	// WE ARE INTERESTED IN AREAS WITH NEGATIVE LSF VALUES
+
+    Mat negative_areas;
+
+    double limit = 0.0;
+    threshold(LSF, negative_areas, limit, 1, THRESH_BINARY_INV);
+
+    negative_areas.convertTo(negative_areas, CV_8UC1, 255.0);
+
+    // find contours (positive areas)
+    vector<vector<Point>> contours;
+    findContours(negative_areas, contours, RETR_LIST, CHAIN_APPROX_NONE);
+
+    return contours;
+}
+
+
 // HELPER
 
 Mat _curvature_central(const Mat & LSF) {
@@ -113,8 +133,6 @@ Mat _neumann_boundary_condition(const Mat &in) {
 
     Mat out = in.clone();
 
-    // TODO corners copying is redundant?
-
     // 4 corners
 
     out.at<float>(Point(0, 0)) = out.at<float>(Point(2, 2));
@@ -144,26 +162,5 @@ Mat _neumann_boundary_condition(const Mat &in) {
     out(one_of_right_cols).copyTo(out(right_edge));
 
     return out;
-}
-
-// ADDITIONAL UTILITY
-
-// TODO move this up
-vector<vector<Point>> acm_get_contours(const Mat_<double> &LSF) {
-
-	// WE ARE INTERESTED IN AREAS WITH NEGATIVE LSF VALUES
-
-    Mat negative_areas;
-
-    double limit = 0.0;
-    threshold(LSF, negative_areas, limit, 1, THRESH_BINARY_INV);
-
-    negative_areas.convertTo(negative_areas, CV_8UC1, 255.0);
-
-    // find contours (positive areas)
-    vector<vector<Point>> contours;
-    findContours(negative_areas, contours, RETR_LIST, CHAIN_APPROX_NONE);
-
-    return contours;
 }
 

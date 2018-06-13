@@ -18,7 +18,6 @@ using namespace std;
 
 
 Mat _get_image_decorated_with_contours(const Mat &image, vector<vector<Point>> contours);
-Mat _get_image_annotated(string text, const Mat &image);
 void _display_image(const Mat &image, string display, string caption);
 
 Mat _read_initial_lsfmatrix_from_file(Size image_size, string filename);
@@ -41,10 +40,10 @@ int main(int argc, char** argv) {
 
     string cmdline_options =
             "{help h | | print this message }"
-            "{initial-contour | | specify file with initial contour description }"
-            "{save-all-images-to-dir | | specify directory to save images from every iteration into }"
-            "{save-final-contours | | specify file to save final contour points }"
-            "{save-last-image | | specify file for saving last image}"
+            "{initial-contour | <none> | specify file with initial contour description }"
+            "{save-all-images-to-dir | <none> | specify directory to save images from every iteration into }"
+            "{save-final-contours | <none> | specify file to save final contour points }"
+            "{save-last-image | <none> | specify file for saving last image}"
 
             "{mu | 1.0 | acm param}"
             "{nu | 650.0 | acm param}"
@@ -81,6 +80,7 @@ int main(int argc, char** argv) {
 
     if(parser.has("initial-contour")) {
         string initial_contour_filename = parser.get<String>("initial-contour");
+        cout << "initial contour filename: " << initial_contour_filename << endl;
         initialLSF = _read_initial_lsfmatrix_from_file(image.size(), initial_contour_filename);
     }
     else {
@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
             // 2 - save frame
 
             if(parser.has("save-all-images-to-dir")) {
-                string save_all_dir = parser.get<string>( "save-all-images-to-dir");
+                string save_all_dir = parser.get<String>( "save-all-images-to-dir");
                 char iter_num[5];
                 sprintf(iter_num, "%04d", i);
                 string filename = save_all_dir + "/" + "iter_" + iter_num + ".jpg";
@@ -165,12 +165,12 @@ int main(int argc, char** argv) {
     // ==== FINALIZE
 
     if(parser.has("save-final-contours")) {
-        string final_contours_filename = parser.get<string>("save-final-contours");
+        string final_contours_filename = parser.get<String>("save-final-contours");
         _write_contours_to_file(acm_get_contours(LSF), final_contours_filename);
     }
 
     if(parser.has("save-last-image")) {
-        string final_image_filename = parser.get<string>("save-last-image");
+        string final_image_filename = parser.get<String>("save-last-image");
 
         vector<vector<Point>> final_contours = acm_get_contours(LSF);
 
@@ -182,9 +182,6 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-
-
-// TODO create 'utility.cpp' and extract those
 
 Mat _get_image_decorated_with_contours(const Mat &image, vector<vector<Point>> contours) {
 
