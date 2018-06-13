@@ -41,6 +41,8 @@ int main(int argc, char** argv) {
 
     string cmdline_options =
             "{help h | | print this message }"
+            "{image | images/2.bmp | specify file with initial contour description }"
+
             "{initial-contour | <none> | specify file with initial contour description }"
             "{save-all-images-to-dir | <none> | specify directory to save images (with contours) from every iteration into }"
             "{save-final-contours | <none> | specify file to save final contour points coordinates }"
@@ -67,7 +69,8 @@ int main(int argc, char** argv) {
 
     // READ AND DISPLAY IMAGE
 
-    Mat_<uchar> image = imread("images/2.bmp", IMREAD_GRAYSCALE);
+    string image_filename = parser.get<String>("image");
+    Mat_<uchar> image = imread(image_filename, IMREAD_GRAYSCALE);
 
     _display_image(image, "display", "image");
 

@@ -29,7 +29,7 @@ Dependencies:
 
 ### Example
 
-`./main.out --initial-contour=initial_contour_ellipse --save-last-image=final_image.jpg --save-final-contours=final_contours.txt --save-all-images-to-dir=some_dir`
+`./main.out --initial-contour=initial_contour_ellipse --save-last-image=final_image.jpg --save-final-contours=final_contours.txt --save-all-images-to-dir=some_dir --image=images/2.bmp`
 
 ### Intial contour file format
 
