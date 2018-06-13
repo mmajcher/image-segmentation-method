@@ -230,10 +230,20 @@ Mat _read_initial_lsfmatrix_from_file(Size image_size, string filename) {
         initial_lsf(Rect(top_left, bot_right)).setTo(-1.0);
     }
     else if(shape == "ellipse") {
-        // TODO ellipse
+        Point center;
+        Size size;
+        in >> center.x >> center.y;
+        in >> size.height >> size.width;
+
+        ellipse(initial_lsf, center, size, 0, 0, 360, Scalar(-1.0), CV_FILLED);
     }
     else if(shape == "circle") {
-        // TODO circle
+        Point center;
+        int radius;
+        in >> center.x >> center.y;
+        in >> radius;
+
+        circle(initial_lsf, center, radius, Scalar(-1.0), CV_FILLED);
     }
     else if(shape == "contour") {
         vector<Point> contour;
@@ -246,7 +256,6 @@ Mat _read_initial_lsfmatrix_from_file(Size image_size, string filename) {
         vector<vector<Point>> contours;
         contours.push_back(contour);
 
-        // set area inside given contour to negative values
         drawContours(initial_lsf, contours, -1, Scalar(-1.0), CV_FILLED);
     }
     else {
