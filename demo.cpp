@@ -236,7 +236,18 @@ Mat _read_initial_lsfmatrix_from_file(Size image_size, string filename) {
         // TODO circle
     }
     else if(shape == "contour") {
-        // TODO contour points
+        vector<Point> contour;
+        int x,y;
+        while(in >> x >> y) {
+            Point point(x,y);
+            contour.push_back(point);
+        }
+
+        vector<vector<Point>> contours;
+        contours.push_back(contour);
+
+        // set area inside given contour to negative values
+        drawContours(initial_lsf, contours, -1, Scalar(-1.0), CV_FILLED);
     }
     else {
         cout << "unknown initial-contour shape; please use: rectangle ellipse circle" << endl;
