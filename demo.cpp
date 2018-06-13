@@ -45,6 +45,15 @@ int main(int argc, char** argv) {
             "{save-all-images-to-dir | | specify directory to save images from every iteration into }"
             "{save-final-contours | | specify file to save final contour points }"
             "{save-last-image | | specify file for saving last image}"
+
+            "{mu | 1.0 | acm param}"
+            "{nu | 650.0 | acm param}"
+            "{lambda1 | 1.0 | acm param}"
+            "{lambda2 | 1.0 | acm param}"
+            "{epsilon | 1.0 | acm param}"
+            "{timestep | 0.02 | acm param}"
+            "{iterations | 200 | acm param}"
+            "{sigma | 2.0 | acm param}"
             ;
 
     CommandLineParser parser(argc, argv, cmdline_options);
@@ -89,16 +98,14 @@ int main(int argc, char** argv) {
 
     // ==== PARAMS
 
-    // TODO push those params to CommandLineParser
-
-    int mu = 1;
-    double nu = 0.01 * 255 * 255;
-    int lambda1 = 1;
-    int lambda2 = lambda1;
-    double epsilon = 1.0;
-    double timestep = 0.02;
-    int iterations_number = 200;
-    double sigma = 2; // control local size
+    double mu = parser.get<double>("mu");
+    double nu = parser.get<double>("nu");
+    double lambda1 = parser.get<double>("lambda1");
+    double lambda2 = parser.get<double>("lambda2");
+    double epsilon = parser.get<double>("epsilon");
+    double timestep = parser.get<double>("timestep");
+    int iterations_number = parser.get<double>("iterations");
+    double sigma = parser.get<double>("sigma");
 
 
     // ==== LOCAL PREFITTING ENERGY FUNCTIONS
